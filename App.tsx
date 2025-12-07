@@ -86,33 +86,32 @@ const App: React.FC = () => {
   }, [fetchMoreContent]);
 
   return (
-    <div className="min-h-screen bg-black text-gray-300 font-mono selection:bg-orange-500 selection:text-black p-6 md:p-12 lg:p-24 relative overflow-hidden">
+    <div className="min-h-screen bg-black text-gray-300 font-mono selection:bg-orange-500 selection:text-black p-4 sm:p-6 md:p-12 relative overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
       
       {/* Background Noise/Scanline Effect Overlay (Optional for aesthetics) */}
-      <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 invert"></div>
+      <div className="fixed inset-0 pointer-events-none opacity-[0.015] sm:opacity-[0.03] z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 invert"></div>
 
       <BitcoinLogo />
 
       <main className="max-w-3xl mx-auto relative z-10">
-        <header className="mb-24 mt-12 opacity-80">
+        <header className="mb-10 sm:mb-16 mt-12 opacity-80">
            <h1 className="text-sm md:text-base text-orange-500 mb-2 tracking-widest uppercase">
              // The Infinite Bitcoin Text
            </h1>
-           <p className="text-xs text-gray-500">
-             Live fragments streamed in real time
-           </p>
         </header>
 
-        <div className="space-y-12">
+        <div className="space-y-8 sm:space-y-12">
           {loadingState === LoadingState.LOADING && chunks.length === 0 && (
-            <div className="text-center text-sm text-orange-400 opacity-80">
+            <div className="text-center text-orange-400 opacity-80 text-xs sm:text-sm">
+              <span className="inline-block px-3 py-1 border border-orange-500/30 rounded-full">
               {loadingMessage}
+              </span>
             </div>
           )}
           {chunks.map((chunk) => (
             <article key={chunk.id} className="animate-fade-in transition-opacity duration-1000">
                {/* Topic Header - Moved to top of section */}
-              <div className="mb-8 flex items-center gap-4 opacity-40 text-xs">
+              <div className="mb-8 flex items-center gap-4 opacity-40 text-sm">
                 <span className="h-px bg-gray-600 flex-grow"></span>
                 <span className="tracking-widest text-orange-500/80">{'// ' + chunk.topic.toUpperCase()}</span>
                 <span className="h-px bg-gray-600 flex-grow"></span>
@@ -122,7 +121,7 @@ const App: React.FC = () => {
               {chunk.content.split('\n').map((paragraph, idx) => {
                 if (!paragraph.trim()) return null;
                 return (
-                  <p key={`${chunk.id}-p-${idx}`} className="mb-6 leading-relaxed text-lg md:text-xl text-justify opacity-90 hover:opacity-100 transition-opacity">
+                  <p key={`${chunk.id}-p-${idx}`} className="mb-6 leading-relaxed text-base sm:text-lg md:text-xl text-left sm:text-justify opacity-90 hover:opacity-100 transition-opacity">
                     {paragraph}
                   </p>
                 );
@@ -132,7 +131,7 @@ const App: React.FC = () => {
         </div>
 
         {/* Observer Target / Loader */}
-        <div ref={observerTarget} className="py-12 flex flex-col items-center justify-center min-h-[200px]">
+        <div ref={observerTarget} className="py-12 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[200px]">
           {loadingState === LoadingState.ERROR && (
             <div className="text-center">
               <p className="text-red-500 mb-4">Connection interrupted.</p>

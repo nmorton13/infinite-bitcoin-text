@@ -8,7 +8,7 @@ export const BitcoinLogo: React.FC = () => {
       viewBox="0 0 64 64" 
       fill="none" 
       xmlns="http://www.w3.org/2000/svg"
-      className="fixed top-6 left-6 z-50 animate-pulse-slow hover:rotate-12 transition-transform duration-500 cursor-pointer"
+      className="fixed top-4 left-4 sm:top-6 sm:left-6 w-8 h-8 sm:w-10 sm:h-10 z-50 animate-pulse-slow hover:rotate-12 transition-transform duration-500 cursor-pointer"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
     >
       <circle cx="32" cy="32" r="32" fill="#F7931A"/>
