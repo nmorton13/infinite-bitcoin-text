@@ -2,7 +2,7 @@ import { BITCOIN_TOPICS } from "../constants";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const OPENROUTER_PROXY_URL = `${API_BASE}/openrouter`;
-const OPENROUTER_MODEL = "x-ai/grok-4.1-fast";
+const OPENROUTER_MODEL = "google/gemini-2.5-flash-lite-preview-09-2025";
 
 const getRandomTopic = (exclude: string[] = []): string => {
   const excludeSet = new Set(exclude.map(topic => topic.toLowerCase()));
