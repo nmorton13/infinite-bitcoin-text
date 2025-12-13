@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>The Infinite Bitcoin Text</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+    body {
+      font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+      background-color: #000000;
+      color: #e5e5e5;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; }
+    ::-webkit-scrollbar-thumb:hover { background: #f7931a; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-in { animation: fadeIn 1s ease-out forwards; }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen bg-black text-gray-300 font-mono selection:bg-orange-500 selection:text-black p-4 sm:p-6 md:p-12 relative overflow-hidden pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)]">
+
+    <!-- Background Noise Overlay -->
+    <div class="fixed inset-0 pointer-events-none opacity-[0.015] sm:opacity-[0.03] z-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 invert"></div>
+
+    <!-- Bitcoin Logo -->
+    <svg id="logo" width="40" height="40" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg"
+      class="fixed top-4 left-4 sm:top-6 sm:left-6 w-8 h-8 sm:w-10 sm:h-10 z-50 hover:rotate-12 transition-transform duration-500 cursor-pointer"
+      style="animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
+      <circle cx="32" cy="32" r="32" fill="#F7931A"/>
+      <path d="M44.966 26.626C45.898 23.136 43.998 20.458 39.866 19.34L40.732 15.862L38.256 15.244L37.408 18.636C36.756 18.474 36.09 18.324 35.426 18.182L36.276 14.75L33.8 14.132L32.934 17.61C31.54 17.296 30.13 17.026 30.13 17.026L28.164 16.536L27.684 18.98C27.684 18.98 29.022 19.284 28.986 19.34C29.696 19.518 30.088 20.016 30.05 20.672L27.768 29.824C27.91 29.86 28.056 29.9 28.2 29.932L28.172 29.826L26.312 37.284C26.172 37.662 25.752 38.16 25.044 37.984C25.08 38.038 23.742 37.704 23.742 37.704L22.812 41.444L26.51 42.368C27.7 42.634 28.852 42.864 30.006 43.126L29.146 46.58L31.622 47.198L32.498 43.682C33.176 43.864 33.834 44.024 34.484 44.17L33.618 47.646L36.094 48.264L36.972 44.75C39.686 45.492 42.508 45.72 44.168 42.478C45.51 39.856 45.092 37.98 43.328 36.634C44.596 36.34 45.568 35.534 46.012 33.726C46.334 32.42 46.46 31.25 44.966 26.626ZM38.484 39.754C37.378 44.184 29.756 42.064 27.668 41.542L29.742 33.22C31.83 33.742 39.546 35.488 38.484 39.754ZM39.67 27.674C38.706 31.54 32.18 29.824 30.36 29.37L32.19 22.028C34.01 22.484 40.584 23.996 39.67 27.674Z" fill="white"/>
+    </svg>
+
+    <!-- Settings Button -->
+    <button id="settings-btn" class="fixed top-4 right-4 sm:top-6 sm:right-6 z-50 px-3 py-1 border border-gray-700 hover:border-orange-500 hover:text-orange-500 transition-colors text-xs">
+      SETTINGS
+    </button>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
+      <div class="bg-gray-900 border border-gray-700 p-6 max-w-md w-full">
+        <h2 class="text-orange-500 text-sm mb-4 tracking-widest">// SETTINGS</h2>
+        <p class="text-xs text-gray-500 mb-4">Stored locally in your browser. Never shared.</p>
+
+        <label class="block text-xs text-gray-500 mb-1">API Key</label>
+        <input id="api-key-input" type="password" placeholder="sk-or-..."
+          class="w-full bg-black border border-gray-700 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none mb-4" />
+
+        <label class="block text-xs text-gray-500 mb-1">Model (leave empty for default)</label>
+        <input id="model-input" type="text" placeholder="google/gemini-2.5-flash-lite-preview-09-2025"
+          class="w-full bg-black border border-gray-700 px-3 py-2 text-sm focus:border-orange-500 focus:outline-none mb-1" />
+        <p class="text-xs text-gray-600 mb-4">Browse models at <a href="https://openrouter.ai/models" target="_blank" class="text-orange-500/70 hover:text-orange-500">openrouter.ai/models</a></p>
+
+        <div class="flex gap-2">
+          <button id="save-key-btn" class="flex-1 px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black transition-colors text-sm">
+            SAVE
+          </button>
+          <button id="clear-key-btn" class="px-4 py-2 border border-gray-700 text-gray-500 hover:border-red-500 hover:text-red-500 transition-colors text-sm">
+            CLEAR
+          </button>
+          <button id="close-modal-btn" class="px-4 py-2 border border-gray-700 hover:border-gray-500 transition-colors text-sm">
+            CLOSE
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="max-w-3xl mx-auto relative z-10">
+      <header class="mb-10 sm:mb-16 mt-12 opacity-80">
+        <h1 class="text-sm md:text-base text-orange-500 mb-2 tracking-widest uppercase">
+          // The Infinite Bitcoin Text
+        </h1>
+      </header>
+
+      <div id="content" class="space-y-8 sm:space-y-12"></div>
+
+      <!-- Observer Target / Loader -->
+      <div id="observer-target" class="py-12 flex flex-col items-center justify-center min-h-[120px] sm:min-h-[200px]">
+        <div id="loader" class="hidden text-center text-orange-400 opacity-80 text-xs sm:text-sm">
+          <span class="inline-block px-3 py-1 border border-orange-500/30 rounded-full" id="loading-message"></span>
+        </div>
+        <div id="error" class="hidden text-center">
+          <p class="text-red-500 mb-4" id="error-message">Connection interrupted.</p>
+          <button id="retry-btn" class="px-4 py-2 border border-gray-700 hover:border-orange-500 hover:text-orange-500 transition-colors text-sm">
+            RETRY_CONNECTION
+          </button>
+        </div>
+        <div id="needs-key" class="hidden text-center">
+          <p class="text-gray-500 mb-4">API key required to begin.</p>
+          <button id="open-settings-btn" class="px-4 py-2 border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-black transition-colors text-sm">
+            ENTER_API_KEY
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <div class="fixed bottom-6 right-6 text-xs text-gray-800 pointer-events-none hidden md:block">
+      READ_ONLY_MODE
+    </div>
+  </div>
+
+<script>
+const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const DEFAULT_MODEL = "google/gemini-2.5-flash-lite-preview-09-2025";
+const STORAGE_KEY = "openrouter_api_key";
+const MODEL_STORAGE_KEY = "openrouter_model";
+
+const BITCOIN_TOPICS = [
+  // Genesis & History
+  "The Genesis Block and Satoshi Nakamoto's hidden message",
+  "Bitcoin Pizza Day and the first real-world transaction",
+  "The Silk Road and early adoption history",
+  "The Block Size Wars and the scaling debate",
+  "The UASF movement and user-activated soft forks",
+  "Mt. Gox collapse and lessons learned",
+  "The China mining ban and hashrate migration",
+  "El Salvador's Bitcoin legal tender experiment",
+  "The rise and fall of centralized exchanges",
+  "Hal Finney receiving the first Bitcoin transaction",
+  // Satoshi & Cypherpunks
+  "Cypherpunk history: Tim May, Hal Finney, Nick Szabo",
+  "The Satoshi Papers and early writings",
+  "Nick Szabo's Bit Gold and smart contracts origins",
+  "Wei Dai's b-money proposal",
+  "Adam Back and Hashcash origins of proof of work",
+  "The cypherpunk mailing list and digital cash dreams",
+  "Satoshi's disappearance and decentralized leadership",
+  "The Crypto Wars of the 1990s and encryption freedom",
+  // Technical Fundamentals
+  "The technical mechanics of SHA-256 hashing",
+  "Public key cryptography and digital signatures",
+  "The Byzantine Generals Problem solution",
+  "Unspent Transaction Outputs (UTXO) model",
+  "Segregated Witness (SegWit) and transaction malleability",
+  "Taproot and Schnorr Signatures",
+  "Difficulty adjustment: The heartbeat of the network",
+  "The Mempool and fee market dynamics",
+  "BIP-324 encrypted P2P transport",
+  "Miniscript and advanced spending conditions",
+  "Assumeutxo and fast node synchronization",
+  "Stratum V2 and decentralized mining pools",
+  "Compact block relay and network efficiency",
+  "Replace-by-fee (RBF) and transaction replacement",
+  // Layer 2 & Scaling
+  "The Lightning Network and Layer 2 solutions",
+  "Lightning channel management and liquidity",
+  "Submarine swaps and atomic swaps",
+  "Fedimint and federated ecash",
+  "Cashu and the ecash renaissance",
+  "Lightning Service Providers (LSPs)",
+  "Channel factories and scaling solutions",
+  "BOLT specifications and Lightning interoperability",
+  "Splicing and dynamic channel management",
+  // Economics & Austrian Theory
+  "Austrian Economics and the theory of sound money",
+  "The 21 million hard cap and scarcity",
+  "The Halving cycles and stock-to-flow models",
+  "The Cantillon Effect and fiat wealth transfer",
+  "Time preference and civilization building",
+  "Gresham's Law: Bad money drives out good",
+  "Sound money vs fiat money throughout history",
+  "The petrodollar system and its fragility",
+  "Monetary debasement from Rome to today",
+  "Seigniorage and hidden taxation",
+  "The gold standard era and its collapse",
+  "Hyperinflation case studies: Zimbabwe, Venezuela, Weimar",
+  "Bitcoin as a savings technology",
+  "The separation of Money and State",
+  "Digital gold vs digital cash narrative evolution",
+  // Security & Self-Custody
+  "Cold storage, hardware wallets, and air-gapped security",
+  "Multisig vaults and collaborative custody",
+  "Running a full node and personal independence",
+  "The philosophy of 'Don't Trust, Verify'",
+  "Seed phrase security and backup strategies",
+  "Passphrases and decoy wallets",
+  "Shamir's Secret Sharing for key backup",
+  "Hardware wallet supply chain security",
+  "Social recovery and inheritance planning",
+  "Covenants and spending restrictions",
+  // Privacy
+  "Privacy technologies: CoinJoin and Coin Control",
+  "PayJoin and steganographic transactions",
+  "Silent Payments and reusable addresses",
+  "Tor, VPNs, and network-level privacy",
+  "Chain analysis companies and surveillance capitalism",
+  "UTXO management for privacy",
+  "The fungibility problem and tainted coins",
+  "Privacy as a human right",
+  // Energy & Mining (Daniel Batten)
+  "The energy consumption debate and Proof of Work thermodynamics",
+  "Miners as energy buyers of last resort",
+  "Bitcoin mining and methane mitigation",
+  "Stranded energy monetization through mining",
+  "ESG narratives debunked: Bitcoin's environmental case",
+  "Mining and electrical grid stabilization",
+  "Renewable energy and mining synergies",
+  "Flare gas capture and Bitcoin mining",
+  "Mining as demand response for grids",
+  "The Cambridge Bitcoin Electricity Index explained",
+  "Energy density and proof of work efficiency",
+  "Mining difficulty and energy security",
+  "Heat recycling from Bitcoin mining operations",
+  "Volcano mining in El Salvador",
+  "Ocean thermal energy and Bitcoin mining",
+  // Human Rights & Global South (Alex Gladstein)
+  "Censorship resistance and human rights",
+  "Bitcoin as a tool for financial sovereignty in authoritarian regimes",
+  "Bitcoin adoption in Nigeria and the eNaira resistance",
+  "Venezuela: Bitcoin as an escape from bolivar hyperinflation",
+  "Cuba and financial censorship circumvention",
+  "Bitcoin for dissidents and journalists under repression",
+  "The Human Rights Foundation and Bitcoin development grants",
+  "Financial inclusion in the Global South",
+  "Remittances and Bitcoin's cost savings",
+  "Women's financial empowerment through Bitcoin",
+  "LGBTQ+ financial freedom in hostile jurisdictions",
+  "Protest movements and financial deplatforming",
+  "The Canadian trucker convoy and frozen bank accounts",
+  "CBDCs vs Bitcoin: Surveillance money vs freedom money",
+  "Bitcoin in refugee communities",
+  "Dollarization vs Bitcoinization",
+  "Myanmar resistance and Bitcoin donations",
+  "Belarus opposition funding through Bitcoin",
+  "Ukraine war donations in Bitcoin",
+  "Bitcoin as peaceful protest",
+  // Policy & Regulation (Bitcoin Policy Institute)
+  "Legal tender laws and Bitcoin adoption",
+  "Bitcoin regulatory frameworks around the world",
+  "Tax treatment of Bitcoin: Property vs currency",
+  "Self-custody rights and regulatory threats",
+  "Financial privacy laws and Bitcoin",
+  "Mining policy and energy regulation",
+  "Bitcoin and securities law debates",
+  "State-level Bitcoin legislation in the US",
+  "The EU's MiCA regulations",
+  "Operation Choke Point 2.0 and banking discrimination",
+  "The right to transact and financial freedom",
+  "KYC/AML overreach and privacy erosion",
+  "Central bank policy and Bitcoin's monetary competition",
+  "Bitcoin ETFs and institutional adoption",
+  "Strategic Bitcoin reserves debate",
+  // Books & Essential Reading
+  "The Bitcoin Standard by Saifedean Ammous",
+  "The Fiat Standard: The debt slavery alternative to human civilization",
+  "Broken Money by Lyn Alden: A monetary history",
+  "The Blocksize War by Jonathan Bier",
+  "Inventing Bitcoin by Yan Pritzker",
+  "21 Lessons by Gigi: What I've learned from falling down the Bitcoin rabbit hole",
+  "The Sovereign Individual: Prophecy of Bitcoin",
+  "The Price of Tomorrow by Jeff Booth: Deflation and abundance",
+  "Thank God for Bitcoin: The creation, corruption and redemption of money",
+  "Mastering Bitcoin by Andreas Antonopoulos",
+  "The Little Bitcoin Book: Why Bitcoin matters for your freedom",
+  "Gradually Then Suddenly by Parker Lewis",
+  "Layered Money by Nik Bhatia",
+  "The Internet of Money series by Andreas Antonopoulos",
+  "Softwar by Jason Lowery: Thesis on proof of work as national defense",
+  "Bitcoin Clarity by Kiara Bickers",
+  "Bitcoin: Hard Money You Can't F*ck With by Jason Williams",
+  "The Book of Satoshi compiled by Phil Champagne",
+  "Bitcoin Billionaires by Ben Mezrich",
+  "Digital Gold by Nathaniel Popper",
+  // Culture & Philosophy
+  "Toxic maximalism: Conviction or tribalism?",
+  "Low time preference as a lifestyle philosophy",
+  "The citadel meme and future speculation",
+  "HODL culture and its origins from bitcointalk",
+  "Number go up technology and adoption curves",
+  "Stacking sats: Dollar cost averaging philosophy",
+  "Not your keys, not your coins: The mantra explained",
+  "Timechain vs Blockchain terminology",
+  "The distinction between Bitcoin and 'Crypto'",
+  "Bitcoin as a religion: Faith, conviction, and community",
+  "The orange pill metaphor and awakening",
+  "Proof of work as unforgeable costliness",
+  "Bitcoin's immaculate conception: No premine, no founder reward",
+  "The honey badger meme: Bitcoin doesn't care",
+  "Fix the money, fix the world philosophy",
+  "Hyperbitcoinization scenarios",
+  "Bitcoin circular economies",
+  "Generational wealth and Bitcoin inheritance",
+  // Technical Debates & Developments
+  "Ordinals and inscriptions: Innovation or spam?",
+  "RGB protocol and client-side validation",
+  "Ark protocol and virtual UTXOs",
+  "Drivechains and BIP-300 debate",
+  "OP_CAT reactivation proposals",
+  "BitVM and Bitcoin smart contracts",
+  "Statechains and off-chain ownership transfer",
+  "BIPs (Bitcoin Improvement Proposals) governance process",
+  "Soft forks vs hard forks: Bitcoin's upgrade philosophy",
+  "Core development and decentralized contribution",
+  // Nostr & Adjacent Tech
+  "Nostr: Notes and Other Stuff Transmitted by Relays",
+  "Zaps: Lightning payments on social media",
+  "Value 4 Value model and content monetization",
+  "Decentralized identity on Nostr",
+  "Bitcoin and censorship-resistant publishing",
+];
+
+const LOADING_MESSAGES = [
+  "Syncing to the latest timechain fragment... [|==>     ]",
+  "Negotiating mempool fees for fresh prose... [fee/byte -> fair]",
+  "Hashing a new block of words... [0000abcd...]",
+  "Broadcasting a signed packet of thoughts... [node@127.0.0.1 -> net]",
+  "Waiting for miners to confirm this paragraph... [pow nonce rolling]"
+];
+
+// State
+let isLoading = false;
+let recentTopics = [];
+
+// DOM Elements
+const content = document.getElementById('content');
+const loader = document.getElementById('loader');
+const loadingMessage = document.getElementById('loading-message');
+const error = document.getElementById('error');
+const errorMessage = document.getElementById('error-message');
+const needsKey = document.getElementById('needs-key');
+const observerTarget = document.getElementById('observer-target');
+const settingsBtn = document.getElementById('settings-btn');
+const settingsModal = document.getElementById('settings-modal');
+const apiKeyInput = document.getElementById('api-key-input');
+const modelInput = document.getElementById('model-input');
+const saveKeyBtn = document.getElementById('save-key-btn');
+const clearKeyBtn = document.getElementById('clear-key-btn');
+const closeModalBtn = document.getElementById('close-modal-btn');
+const openSettingsBtn = document.getElementById('open-settings-btn');
+const retryBtn = document.getElementById('retry-btn');
+const logo = document.getElementById('logo');
+
+// Helpers
+const getApiKey = () => localStorage.getItem(STORAGE_KEY);
+const setApiKey = (key) => localStorage.setItem(STORAGE_KEY, key);
+const clearApiKey = () => localStorage.removeItem(STORAGE_KEY);
+
+const getModel = () => localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL;
+const setModel = (model) => model ? localStorage.setItem(MODEL_STORAGE_KEY, model) : localStorage.removeItem(MODEL_STORAGE_KEY);
+const clearModel = () => localStorage.removeItem(MODEL_STORAGE_KEY);
+
+const getRandomLoadingMessage = () => LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
+
+const getRandomTopic = (exclude = []) => {
+  const excludeSet = new Set(exclude.map(t => t.toLowerCase()));
+  const available = BITCOIN_TOPICS.filter(t => !excludeSet.has(t.toLowerCase()));
+  const pool = available.length > 0 ? available : BITCOIN_TOPICS;
+  return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const showLoader = () => {
+  loadingMessage.textContent = getRandomLoadingMessage();
+  loader.classList.remove('hidden');
+  error.classList.add('hidden');
+  needsKey.classList.add('hidden');
+};
+
+const hideLoader = () => loader.classList.add('hidden');
+
+const showError = (msg = "Connection interrupted.") => {
+  errorMessage.textContent = msg;
+  error.classList.remove('hidden');
+  loader.classList.add('hidden');
+  needsKey.classList.add('hidden');
+};
+
+const showNeedsKey = () => {
+  needsKey.classList.remove('hidden');
+  loader.classList.add('hidden');
+  error.classList.add('hidden');
+};
+
+const openModal = () => {
+  settingsModal.classList.remove('hidden');
+  settingsModal.classList.add('flex');
+  apiKeyInput.value = getApiKey() || '';
+  const storedModel = localStorage.getItem(MODEL_STORAGE_KEY);
+  modelInput.value = storedModel || '';
+};
+
+const closeModal = () => {
+  settingsModal.classList.add('hidden');
+  settingsModal.classList.remove('flex');
+};
+
+const renderChunk = (text, topic) => {
+  const article = document.createElement('article');
+  article.className = 'animate-fade-in transition-opacity duration-1000';
+
+  const header = document.createElement('div');
+  header.className = 'mb-8 flex items-center gap-4 opacity-40 text-sm';
+  header.innerHTML = `
+    <span class="h-px bg-gray-600 flex-grow"></span>
+    <span class="tracking-widest text-orange-500/80">// ${topic.toUpperCase()}</span>
+    <span class="h-px bg-gray-600 flex-grow"></span>
+  `;
+  article.appendChild(header);
+
+  text.split('\n').forEach(paragraph => {
+    if (!paragraph.trim()) return;
+    const p = document.createElement('p');
+    p.className = 'mb-6 leading-relaxed text-base sm:text-lg md:text-xl text-left sm:text-justify opacity-90 hover:opacity-100 transition-opacity';
+    p.textContent = paragraph;
+    article.appendChild(p);
+  });
+
+  content.appendChild(article);
+};
+
+const fetchContent = async () => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showNeedsKey();
+    return;
+  }
+
+  if (isLoading) return;
+  isLoading = true;
+  showLoader();
+
+  const topic = getRandomTopic(recentTopics.slice(-10));
+
+  const userPrompt = `
+    Write a continuation for an infinite text file about Bitcoin.
+
+    Current Topic to Focus on: "${topic}"
+
+    Instructions:
+    1. Write 2-3 dense, high-quality paragraphs about this specific topic.
+    2. Style: Balance technical accuracy with philosophical cyberpunk flavor. Maximum one vivid metaphor per paragraph. When in doubt, choose clarity over atmosphere.
+    3. Clarity: Be clear first, precise second. Include at least one concrete fact or number per paragraph. Avoid heavy notation; favor plain language.
+    4. Relevance: Include one short anchor sentence in each paragraph explaining why this matters to a normal reader (security, autonomy, censorship-resistance).
+    5. Math markup ban: Avoid math symbols like $ or LaTeX notation; spell out concepts.
+    6. Format: Plain text only. NO markdown. Just raw paragraphs separated by newlines.
+    7. Tone: Serious, passionate, informative.
+    8. Do not write an intro or outro. Just the raw content.
+    9. Avoid repeating topics or specific arguments from these recent topics: ${recentTopics.slice(-3).join("; ") || "none"}.
+    10. Technical accuracy is paramount. Verify security claims, especially around: (a) what 51% attacks can and cannot do; (b) what difficulty adjustment does and does not prevent; (c) collision resistance numbers and what they imply; (d) causality—e.g., difficulty adjustment maintains target timing; it does not prevent attacks.
+    11. Avoid overclaiming. Use phrases like "computationally infeasible" instead of "impossible" or "unbreakable".
+  `;
+
+  const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+
+  try {
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "the-infinite-bitcoin-text"
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          {
+            role: "system",
+            content: "You are the author of an infinite, living document about Bitcoin. You possess deep knowledge of cryptography, economics, history, and computer science. You write in a raw, terminal-like style."
+          },
+          { role: "user", content: userPrompt.trim() }
+        ],
+        stream: false,
+        temperature: 0.35
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("OpenRouter error:", errText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || "";
+    text = text.replace(/^#+\s/gm, "").replace(/\*\*/g, "");
+
+    await minDelay;
+
+    recentTopics.push(topic);
+    if (recentTopics.length > 20) recentTopics.shift();
+
+    renderChunk(text, topic);
+    hideLoader();
+  } catch (err) {
+    console.error("Fetch failed:", err);
+    showError(err.message || "Connection interrupted.");
+  } finally {
+    isLoading = false;
+  }
+};
+
+// Event Listeners
+settingsBtn.addEventListener('click', openModal);
+openSettingsBtn.addEventListener('click', openModal);
+closeModalBtn.addEventListener('click', closeModal);
+settingsModal.addEventListener('click', (e) => { if (e.target === settingsModal) closeModal(); });
+
+saveKeyBtn.addEventListener('click', () => {
+  const key = apiKeyInput.value.trim();
+  if (key) {
+    setApiKey(key);
+    setModel(modelInput.value.trim());
+    closeModal();
+    if (content.children.length === 0) fetchContent();
+  }
+});
+
+clearKeyBtn.addEventListener('click', () => {
+  clearApiKey();
+  clearModel();
+  apiKeyInput.value = '';
+  modelInput.value = '';
+});
+
+retryBtn.addEventListener('click', () => {
+  error.classList.add('hidden');
+  fetchContent();
+});
+
+logo.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
+
+// Intersection Observer for infinite scroll
+const observer = new IntersectionObserver(
+  (entries) => {
+    if (entries[0].isIntersecting && !isLoading) {
+      fetchContent();
+    }
+  },
+  { threshold: 0.1, rootMargin: '400px' }
+);
+observer.observe(observerTarget);
+
+// Initial load
+fetchContent();
+</script>
+</body>
+</html>
