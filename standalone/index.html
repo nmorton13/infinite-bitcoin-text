@@ -320,6 +320,7 @@ const LOADING_MESSAGES = [
 // State
 let isLoading = false;
 let recentTopics = [];
+const conceptTrees = {};
 
 // DOM Elements
 const content = document.getElementById('content');
@@ -348,6 +349,7 @@ const clearApiKey = () => localStorage.removeItem(STORAGE_KEY);
 const getModel = () => localStorage.getItem(MODEL_STORAGE_KEY) || DEFAULT_MODEL;
 const setModel = (model) => model ? localStorage.setItem(MODEL_STORAGE_KEY, model) : localStorage.removeItem(MODEL_STORAGE_KEY);
 const clearModel = () => localStorage.removeItem(MODEL_STORAGE_KEY);
+const generateId = () => `chunk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
 const getRandomLoadingMessage = () => LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)];
 
@@ -356,6 +358,120 @@ const getRandomTopic = (exclude = []) => {
   const available = BITCOIN_TOPICS.filter(t => !excludeSet.has(t.toLowerCase()));
   const pool = available.length > 0 ? available : BITCOIN_TOPICS;
   return pool[Math.floor(Math.random() * pool.length)];
+};
+
+const pushRecentTopic = (topic) => {
+  recentTopics.push(topic);
+  if (recentTopics.length > 20) recentTopics.shift();
+};
+
+const parseConceptNodes = (raw, topic) => {
+  const baseId = `${topic}-${Date.now().toString(36)}`;
+  const fallbackNode = {
+    id: `${baseId}-root`,
+    label: topic,
+    parentId: null,
+    summary: `Exploring ${topic} through Bitcoin's lens.`
+  };
+
+  if (!raw) return [fallbackNode];
+
+  const nodesInput = Array.isArray(raw)
+    ? raw
+    : typeof raw === "object" && raw !== null && Array.isArray(raw.nodes)
+      ? raw.nodes
+      : null;
+
+  if (!nodesInput) return [fallbackNode];
+
+  const sanitized = nodesInput
+    .map((node, idx) => {
+      if (typeof node !== "object" || node === null) return null;
+      const { label, parent, parentId, summary } = node;
+      const safeLabel = typeof label === "string" ? label.trim() : null;
+      const safeParent = typeof parentId === "string"
+        ? parentId.trim()
+        : typeof parent === "string"
+          ? parent.trim()
+          : null;
+      const safeSummary = typeof summary === "string" ? summary.trim() : "";
+
+      if (!safeLabel) return null;
+
+      return {
+        id: `${baseId}-${idx}`,
+        label: safeLabel,
+        parentId: safeParent || (idx === 0 ? null : topic),
+        summary: safeSummary || `How ${safeLabel} intersects with ${topic} in Bitcoin's world.`
+      };
+    })
+    .filter(Boolean);
+
+  if (!sanitized.length) return [fallbackNode];
+
+  const hasRoot = sanitized.some(node => node.parentId === null);
+  return hasRoot ? sanitized : [{ ...fallbackNode }, ...sanitized];
+};
+
+const generateConceptTree = async (topic) => {
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showNeedsKey();
+    throw new Error("API key required for concept tree.");
+  }
+
+  const userPrompt = `
+    You generate surprising, Bitcoin-specific concept trees.
+    Root concept: "${topic}"
+
+    Output requirements:
+    - Return JSON only. Shape: { "nodes": [ { "label": string, "parent": string | null, "summary": string } ] }
+    - Include 1 root (parent null), 3-5 first-level branches, and 2-3 offshoots per branch where useful.
+    - Keep labels short (2-5 words) and Bitcoin-anchored. Prefer unexpected angles (policy, energy, human rights, security).
+    - Summaries: 1 concise sentence explaining why the concept matters for Bitcoin.
+    - No prose outside JSON. No markdown.
+  `;
+
+  const response = await fetch(OPENROUTER_API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${apiKey}`,
+      "HTTP-Referer": window.location.origin,
+      "X-Title": "the-infinite-bitcoin-text"
+    },
+    body: JSON.stringify({
+      model: getModel(),
+      messages: [
+        {
+          role: "system",
+          content: "You are a Bitcoin researcher who thinks laterally. You respond with lean JSON concept trees only."
+        },
+        { role: "user", content: userPrompt.trim() }
+      ],
+      stream: false,
+      temperature: 0.55
+    })
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    console.error("OpenRouter tree error:", errText);
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  const text = data.choices?.[0]?.message?.content?.trim();
+
+  if (!text) return parseConceptNodes(null, topic);
+
+  try {
+    const json = JSON.parse(text);
+    return parseConceptNodes(json, topic);
+  } catch (err) {
+    console.warn("Failed to parse concept tree JSON, using fallback", err);
+    return parseConceptNodes(null, topic);
+  }
 };
 
 const showLoader = () => {
@@ -393,17 +509,323 @@ const closeModal = () => {
   settingsModal.classList.remove('flex');
 };
 
-const renderChunk = (text, topic) => {
+const selectConceptNode = (chunkId, nodeId, topic, container) => {
+  const state = conceptTrees[chunkId];
+  if (!state) return;
+  conceptTrees[chunkId] = { ...state, selectedNodeId: nodeId, actionError: null };
+  renderConceptTree(chunkId, topic, container);
+};
+
+const expandNodeAsSection = async (chunkId, topic, container) => {
+  const state = conceptTrees[chunkId];
+  if (!state || !state.selectedNodeId) return;
+  const node = state.nodes.find(n => n.id === state.selectedNodeId);
+  if (!node) return;
+
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    showNeedsKey();
+    return;
+  }
+
+  conceptTrees[chunkId] = { ...state, actionLoading: true, actionError: null };
+  renderConceptTree(chunkId, topic, container);
+
+  const minDelay = new Promise(resolve => setTimeout(resolve, 800));
+
+  try {
+    const userPrompt = `
+      Write a continuation for an infinite text file about Bitcoin.
+
+      Current Topic to Focus on: "${node.label}"
+
+      Instructions:
+      1. Write 2-3 dense, high-quality paragraphs about this specific topic.
+      2. Style: Balance technical accuracy with philosophical cyberpunk flavor. Maximum one vivid metaphor per paragraph. When in doubt, choose clarity over atmosphere.
+      3. Clarity: Be clear first, precise second. Include at least one concrete fact or number per paragraph. Avoid heavy notation; favor plain language.
+      4. Relevance: Include one short anchor sentence in each paragraph explaining why this matters to a normal reader (security, autonomy, censorship-resistance).
+      5. Math markup ban: Avoid math symbols like $ or LaTeX notation; spell out concepts.
+      6. Format: Plain text only. NO markdown. Just raw paragraphs separated by newlines.
+      7. Tone: Serious, passionate, informative.
+      8. Do not write an intro or outro. Just the raw content.
+      9. Avoid repeating topics or specific arguments from these recent topics: ${recentTopics.slice(-3).join("; ") || "none"}.
+      10. Technical accuracy is paramount. Verify security claims, especially around: (a) what 51% attacks can and cannot do; (b) what difficulty adjustment does and does not prevent; (c) collision resistance numbers and what they imply; (d) causality—e.g., difficulty adjustment maintains target timing; it does not prevent attacks.
+      11. Avoid overclaiming. Use phrases like "computationally infeasible" instead of "impossible" or "unbreakable".
+    `;
+
+    const response = await fetch(OPENROUTER_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "HTTP-Referer": window.location.origin,
+        "X-Title": "the-infinite-bitcoin-text"
+      },
+      body: JSON.stringify({
+        model: getModel(),
+        messages: [
+          {
+            role: "system",
+            content: "You are the author of an infinite, living document about Bitcoin. You possess deep knowledge of cryptography, economics, history, and computer science. You write in a raw, terminal-like style."
+          },
+          { role: "user", content: userPrompt.trim() }
+        ],
+        stream: false,
+        temperature: 0.35
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("OpenRouter expand error:", errText);
+      throw new Error(`API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    let text = data.choices?.[0]?.message?.content?.trim() || "";
+    text = text.replace(/^#+\s/gm, "").replace(/\*\*/g, "");
+
+    await minDelay;
+
+    pushRecentTopic(node.label);
+    renderChunk(text, node.label);
+    conceptTrees[chunkId] = { ...conceptTrees[chunkId], actionLoading: false, actionError: null };
+    renderConceptTree(chunkId, topic, container);
+  } catch (err) {
+    console.error("Failed to expand concept", err);
+    conceptTrees[chunkId] = { ...conceptTrees[chunkId], actionLoading: false, actionError: "Expansion failed. Try again." };
+    renderConceptTree(chunkId, topic, container);
+  }
+};
+
+const renderConceptTree = (chunkId, topic, container) => {
+  const state = conceptTrees[chunkId];
+  container.innerHTML = '';
+  if (!state?.expanded) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'mt-4 border border-orange-500/20 bg-gradient-to-r from-orange-500/5 via-gray-900/60 to-black rounded-lg p-4 sm:p-5';
+  container.appendChild(wrapper);
+
+  if (state.loading) {
+    const row = document.createElement('div');
+    row.className = 'text-xs text-orange-400 flex items-center gap-2';
+    row.innerHTML = `<span class="h-2 w-2 rounded-full bg-orange-400 animate-pulse"></span><span>Mapping related Bitcoin concepts...</span>`;
+    wrapper.appendChild(row);
+    return;
+  }
+
+  if (state.error) {
+    const row = document.createElement('div');
+    row.className = 'text-xs text-red-400 flex items-center justify-between';
+    row.innerHTML = `<span>${state.error}</span>`;
+
+    const retry = document.createElement('button');
+    retry.textContent = 'RETRY';
+    retry.className = 'px-2 py-1 border border-red-500/50 hover:border-orange-500 text-red-200 hover:text-orange-200 transition-colors';
+    retry.addEventListener('click', () => loadConceptTree(chunkId, topic, container));
+    row.appendChild(retry);
+
+    wrapper.appendChild(row);
+    return;
+  }
+
+  const rootNode = state.nodes.find(node => node.parentId === null) || {
+    id: `${chunkId}-root`,
+    label: topic,
+    parentId: null,
+    summary: `Exploring ${topic} through Bitcoin's lens.`
+  };
+
+  const getChildren = (parentLabel) => state.nodes.filter(node => {
+    if (parentLabel === null) return node.parentId === null;
+    return node.parentId === parentLabel || (parentLabel === rootNode.label && node.parentId === topic);
+  });
+
+  const firstLayer = getChildren(rootNode.label);
+  const selectedNode = state.nodes.find(node => node.id === state.selectedNodeId) || rootNode;
+
+  const rootRow = document.createElement('div');
+  rootRow.className = 'flex items-center gap-2 text-xs text-orange-300/80 uppercase tracking-widest';
+
+  const leftLine = document.createElement('span');
+  leftLine.className = 'h-px flex-grow bg-gradient-to-r from-orange-600/40 via-orange-400/60 to-transparent';
+  const rightLine = document.createElement('span');
+  rightLine.className = 'h-px flex-grow bg-gradient-to-l from-orange-600/40 via-orange-400/60 to-transparent';
+
+  const rootButton = document.createElement('button');
+  rootButton.textContent = rootNode.label;
+  rootButton.className = `px-3 py-1 border rounded-full transition-colors ${
+    selectedNode.id === rootNode.id
+      ? 'border-orange-500 text-orange-200'
+      : 'border-orange-500/30 text-orange-300 hover:border-orange-500/60'
+  }`;
+  rootButton.addEventListener('click', () => selectConceptNode(chunkId, rootNode.id, topic, container));
+
+  rootRow.appendChild(leftLine);
+  rootRow.appendChild(rootButton);
+  rootRow.appendChild(rightLine);
+  wrapper.appendChild(rootRow);
+
+  const branchesWrap = document.createElement('div');
+  branchesWrap.className = 'space-y-3 mt-4';
+  firstLayer.forEach(branch => {
+    const branchBlock = document.createElement('div');
+    branchBlock.className = 'p-3 border border-orange-500/15 rounded-md bg-black/30';
+
+    const branchButton = document.createElement('button');
+    branchButton.textContent = branch.label;
+    branchButton.className = `text-sm sm:text-base font-semibold tracking-tight transition-colors ${
+      selectedNode.id === branch.id
+        ? 'text-orange-200'
+        : 'text-orange-300/80 hover:text-orange-200'
+    }`;
+    branchButton.addEventListener('click', () => selectConceptNode(chunkId, branch.id, topic, container));
+    branchBlock.appendChild(branchButton);
+
+    const offshoots = getChildren(branch.label);
+    if (offshoots.length) {
+      const offshootWrap = document.createElement('div');
+      offshootWrap.className = 'mt-2 flex flex-wrap gap-2';
+      offshoots.forEach(node => {
+        const nodeButton = document.createElement('button');
+        nodeButton.textContent = node.label;
+        nodeButton.className = `text-xs sm:text-sm px-2 py-1 rounded-full border transition-colors ${
+          selectedNode.id === node.id
+            ? 'border-orange-500 text-orange-200 bg-orange-500/10'
+            : 'border-orange-500/20 text-gray-300 hover:text-orange-200 hover:border-orange-500/50'
+        }`;
+        nodeButton.addEventListener('click', () => selectConceptNode(chunkId, node.id, topic, container));
+        offshootWrap.appendChild(nodeButton);
+      });
+      branchBlock.appendChild(offshootWrap);
+    }
+
+    branchesWrap.appendChild(branchBlock);
+  });
+  wrapper.appendChild(branchesWrap);
+
+  const summaryBox = document.createElement('div');
+  summaryBox.className = 'mt-4 text-xs sm:text-sm text-gray-300/90 bg-orange-500/5 border border-orange-500/20 rounded-md p-3 leading-relaxed flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between';
+  const summaryText = document.createElement('span');
+  summaryText.textContent = selectedNode.summary;
+
+  const actions = document.createElement('div');
+  actions.className = 'flex items-center gap-3';
+
+  if (state.actionError) {
+    const errText = document.createElement('span');
+    errText.className = 'text-red-400 text-[11px] sm:text-xs';
+    errText.textContent = state.actionError;
+    actions.appendChild(errText);
+  }
+
+  const expandBtn = document.createElement('button');
+  expandBtn.textContent = state.actionLoading ? 'EXPANDING...' : 'EXPAND_AS_SECTION';
+  expandBtn.disabled = !!state.actionLoading;
+  expandBtn.className = `px-3 py-2 border text-xs sm:text-sm transition-colors ${
+    state.actionLoading
+      ? 'border-orange-500/40 text-orange-300/60 cursor-not-allowed'
+      : 'border-orange-500/60 text-orange-200 hover:bg-orange-500 hover:text-black'
+  }`;
+  expandBtn.addEventListener('click', () => expandNodeAsSection(chunkId, topic, container));
+
+  actions.appendChild(expandBtn);
+
+  summaryBox.appendChild(summaryText);
+  summaryBox.appendChild(actions);
+  wrapper.appendChild(summaryBox);
+};
+
+const loadConceptTree = async (chunkId, topic, container) => {
+  conceptTrees[chunkId] = {
+    nodes: conceptTrees[chunkId]?.nodes || [],
+    loading: true,
+    error: null,
+    expanded: true,
+    selectedNodeId: conceptTrees[chunkId]?.selectedNodeId,
+    actionLoading: false,
+    actionError: null
+  };
+  renderConceptTree(chunkId, topic, container);
+
+  try {
+    const nodes = await generateConceptTree(topic);
+    const rootId = nodes.find(node => node.parentId === null)?.id || nodes[0]?.id;
+    conceptTrees[chunkId] = {
+      nodes,
+      loading: false,
+      error: null,
+      expanded: true,
+      selectedNodeId: rootId,
+      actionLoading: false,
+      actionError: null
+    };
+    renderConceptTree(chunkId, topic, container);
+  } catch (err) {
+    console.error("Failed to load concept tree", err);
+    conceptTrees[chunkId] = {
+      nodes: conceptTrees[chunkId]?.nodes || [],
+      loading: false,
+      error: "Transmission jammed. Try again.",
+      expanded: true,
+      selectedNodeId: conceptTrees[chunkId]?.selectedNodeId,
+      actionLoading: false,
+      actionError: null
+    };
+    renderConceptTree(chunkId, topic, container);
+  }
+};
+
+const toggleConceptTree = (chunkId, topic, container) => {
+  const current = conceptTrees[chunkId];
+  if (current?.expanded) {
+    conceptTrees[chunkId] = { ...current, expanded: false };
+    container.innerHTML = '';
+    return;
+  }
+
+  if (current?.nodes?.length) {
+    conceptTrees[chunkId] = { ...current, expanded: true, error: null };
+    renderConceptTree(chunkId, topic, container);
+    return;
+  }
+
+  conceptTrees[chunkId] = {
+    nodes: [],
+    loading: true,
+    error: null,
+    expanded: true,
+    selectedNodeId: null,
+    actionLoading: false,
+    actionError: null
+  };
+  renderConceptTree(chunkId, topic, container);
+  loadConceptTree(chunkId, topic, container);
+};
+
+const renderChunk = (text, topic, chunkId = generateId()) => {
   const article = document.createElement('article');
   article.className = 'animate-fade-in transition-opacity duration-1000';
+   article.dataset.chunkId = chunkId;
 
   const header = document.createElement('div');
-  header.className = 'mb-8 flex items-center gap-4 opacity-40 text-sm';
-  header.innerHTML = `
+  header.className = 'mb-8 flex flex-col gap-3';
+
+  const headerButton = document.createElement('button');
+  headerButton.className = 'flex items-center gap-4 opacity-60 hover:opacity-100 text-sm transition-opacity';
+  headerButton.innerHTML = `
     <span class="h-px bg-gray-600 flex-grow"></span>
     <span class="tracking-widest text-orange-500/80">// ${topic.toUpperCase()}</span>
     <span class="h-px bg-gray-600 flex-grow"></span>
   `;
+
+  const treeContainer = document.createElement('div');
+
+  headerButton.addEventListener('click', () => toggleConceptTree(chunkId, topic, treeContainer));
+
+  header.appendChild(headerButton);
+  header.appendChild(treeContainer);
   article.appendChild(header);
 
   text.split('\n').forEach(paragraph => {
@@ -486,8 +908,7 @@ const fetchContent = async () => {
 
     await minDelay;
 
-    recentTopics.push(topic);
-    if (recentTopics.length > 20) recentTopics.shift();
+    pushRecentTopic(topic);
 
     renderChunk(text, topic);
     hideLoader();
