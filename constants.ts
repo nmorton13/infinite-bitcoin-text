@@ -10,6 +10,11 @@ export const BITCOIN_TOPICS = [
   "El Salvador's Bitcoin legal tender experiment",
   "The rise and fall of centralized exchanges",
   "Hal Finney receiving the first Bitcoin transaction",
+  "WikiLeaks and Bitcoin's first major censorship resistance test",
+  "The Bitcoin Foundation's rise and eventual decline",
+  "Blockstream's founding and sidechains development",
+  "The 2017 bull run and mainstream media frenzy",
+  "FTX collapse and the importance of self-custody proven again",
 
   // Satoshi & Cypherpunks
   "Cypherpunk history: Tim May, Hal Finney, Nick Szabo",
@@ -20,6 +25,11 @@ export const BITCOIN_TOPICS = [
   "The cypherpunk mailing list and digital cash dreams",
   "Satoshi's disappearance and decentralized leadership",
   "The Crypto Wars of the 1990s and encryption freedom",
+  "David Chaum's DigiCash and early digital currency attempts",
+  "Eric Hughes' A Cypherpunk's Manifesto",
+  "The PGP story: Phil Zimmermann and cryptographic freedom",
+  "Ralph Merkle and the invention of Merkle trees",
+  "The legacy of cryptographic pioneers: Diffie, Hellman, Rivest, Shamir, Adleman",
 
   // Technical Fundamentals
   "The technical mechanics of SHA-256 hashing",
@@ -36,6 +46,11 @@ export const BITCOIN_TOPICS = [
   "Stratum V2 and decentralized mining pools",
   "Compact block relay and network efficiency",
   "Replace-by-fee (RBF) and transaction replacement",
+  "How Bitcoin nodes talk to each other: The peer-to-peer network explained",
+  "Transaction fees explained: Why you pay miners to process payments",
+  "The 10-minute block time: Why Bitcoin isn't instant",
+  "Merkle trees: How Bitcoin efficiently proves transactions are real",
+  "What is a Bitcoin address and how do different types work?",
 
   // Layer 2 & Scaling
   "The Lightning Network and Layer 2 solutions",
@@ -47,6 +62,11 @@ export const BITCOIN_TOPICS = [
   "Channel factories and scaling solutions",
   "BOLT specifications and Lightning interoperability",
   "Splicing and dynamic channel management",
+  "Lightning implementations: LND, Core Lightning, and Eclair explained",
+  "LNURL and Lightning Address: Making Lightning payments user-friendly",
+  "Dual-funded channels and liquidity markets",
+  "Watchtowers: Protecting your Lightning channels while offline",
+  "Lightning Network routing: Finding payment paths across the network",
 
   // Economics & Austrian Theory
   "Austrian Economics and the theory of sound money",
@@ -64,6 +84,11 @@ export const BITCOIN_TOPICS = [
   "Bitcoin as a savings technology",
   "The separation of Money and State",
   "Digital gold vs digital cash narrative evolution",
+  "Carl Menger's theory of the origin of money",
+  "Ludwig von Mises' regression theorem and Bitcoin",
+  "F.A. Hayek's Denationalization of Money",
+  "The calculation problem and why central planning fails",
+  "Bitcoin's monetary premium and network effects",
 
   // Security & Self-Custody
   "Cold storage, hardware wallets, and air-gapped security",
@@ -76,6 +101,11 @@ export const BITCOIN_TOPICS = [
   "Hardware wallet supply chain security",
   "Social recovery and inheritance planning",
   "Covenants and spending restrictions",
+  "Time locks for Bitcoin inheritance: CLTV and CSV explained",
+  "Steel plate backups and extreme durability",
+  "Geographic distribution of backups: The 3-2-1 rule",
+  "Duress wallets and $5 wrench attacks",
+  "PSBT: Partially Signed Bitcoin Transactions for advanced security",
 
   // Privacy
   "Privacy technologies: CoinJoin and Coin Control",
@@ -86,6 +116,11 @@ export const BITCOIN_TOPICS = [
   "UTXO management for privacy",
   "The fungibility problem and tainted coins",
   "Privacy as a human right",
+  "CoinJoin implementations: Whirlpool, JoinMarket, and WabiSabi",
+  "Blockchain analysis: How chain surveillance works",
+  "Running your own Electrum server for privacy",
+  "Privacy best practices: Address reuse and why it matters",
+  "Dandelion++ and transaction broadcasting privacy",
 
   // Energy & Mining (Daniel Batten)
   "The energy consumption debate and Proof of Work thermodynamics",
@@ -103,6 +138,11 @@ export const BITCOIN_TOPICS = [
   "Heat recycling from Bitcoin mining operations",
   "Volcano mining in El Salvador",
   "Ocean thermal energy and Bitcoin mining",
+  "Mining economics: ASIC efficiency and the race for hash power",
+  "Bitcoin mining pools: Centralization concerns and solutions",
+  "Home mining: Running a space heater that earns bitcoin",
+  "Nuclear energy and Bitcoin: The perfect baseload match",
+  "Seasonal mining and agricultural energy use optimization",
 
   // Human Rights & Global South (Alex Gladstein)
   "Censorship resistance and human rights",
@@ -125,6 +165,11 @@ export const BITCOIN_TOPICS = [
   "Belarus opposition funding through Bitcoin",
   "Ukraine war donations in Bitcoin",
   "Bitcoin as peaceful protest",
+  "Turkey and protecting savings from lira devaluation",
+  "Argentina: Bitcoin as hedge against chronic inflation",
+  "Afghanistan: Women using Bitcoin after Taliban banking restrictions",
+  "Hong Kong protests and financial surveillance resistance",
+  "Sudan and South Sudan: Cross-border value transfer without banks",
 
   // Policy & Regulation (Bitcoin Policy Institute)
   "Legal tender laws and Bitcoin adoption",
@@ -142,6 +187,11 @@ export const BITCOIN_TOPICS = [
   "Central bank policy and Bitcoin's monetary competition",
   "Bitcoin ETFs and institutional adoption",
   "Strategic Bitcoin reserves debate",
+  "Travel rule and cross-border Bitcoin transactions",
+  "Unhosted wallet regulation and the fight for self-custody",
+  "Bitcoin in retirement accounts: IRA and 401k considerations",
+  "The Howey Test and why Bitcoin isn't a security",
+  "Tornado Cash prosecution and code as free speech",
 
   // Books & Essential Reading
   "The Bitcoin Standard by Saifedean Ammous",
@@ -164,6 +214,11 @@ export const BITCOIN_TOPICS = [
   "The Book of Satoshi compiled by Phil Champagne",
   "Bitcoin Billionaires by Ben Mezrich",
   "Digital Gold by Nathaniel Popper",
+  "Check Your Financial Privilege by Alex Gladstein",
+  "Why Buy Bitcoin by Andy Edstrom",
+  "The Bullish Case for Bitcoin by Vijay Boyapati",
+  "Programming Bitcoin by Jimmy Song",
+  "When Money Dies by Adam Fergusson: Weimar hyperinflation lessons",
 
   // Culture & Philosophy
   "Toxic maximalism: Conviction or tribalism?",
@@ -184,6 +239,11 @@ export const BITCOIN_TOPICS = [
   "Hyperbitcoinization scenarios",
   "Bitcoin circular economies",
   "Generational wealth and Bitcoin inheritance",
+  "Bitcoin memes as cultural transmission: Laser eyes and more",
+  "The Pleb movement and grassroots adoption",
+  "Bitcoin maximalism vs multi-coin approach",
+  "Bitcoin Twitter (now X) and information warfare",
+  "Bitcoin meetups and local community building",
 
   // Technical Debates & Developments
   "Ordinals and inscriptions: Innovation or spam?",
@@ -196,6 +256,11 @@ export const BITCOIN_TOPICS = [
   "BIPs (Bitcoin Improvement Proposals) governance process",
   "Soft forks vs hard forks: Bitcoin's upgrade philosophy",
   "Core development and decentralized contribution",
+  "CHECKTEMPLATEVERIFY (CTV) and vaults",
+  "Great Script Restoration and Bitcoin's programming future",
+  "Liquid Network and federated sidechains",
+  "Cross-input signature aggregation proposals",
+  "Simplicity: A new programming language for Bitcoin",
 
   // Nostr & Adjacent Tech
   "Nostr: Notes and Other Stuff Transmitted by Relays",
@@ -203,4 +268,9 @@ export const BITCOIN_TOPICS = [
   "Value 4 Value model and content monetization",
   "Decentralized identity on Nostr",
   "Bitcoin and censorship-resistant publishing",
+  "Nostr relays and decentralized infrastructure",
+  "NIP-05 verification and user discovery",
+  "Nostr clients: Damus, Amethyst, Primal, and more",
+  "Long-form content on Nostr: Habla and alternatives to Medium",
+  "Nostr markets and decentralized e-commerce",
 ];
