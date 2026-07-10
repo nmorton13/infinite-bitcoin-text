@@ -14,7 +14,7 @@ An infinite, terminal-styled scroll of streamed Bitcoin prose. Each chunk focuse
 ## Tech Stack
 - React 19 + TypeScript, Vite 6
 - Tailwind via CDN (see `index.html`)
-- OpenRouter calling `google/gemini-2.5-flash-lite-preview-09-2025`
+- OpenRouter calling `google/gemini-2.5-flash-lite`
 
 ## Running Locally
 Prereqs: Node.js (latest LTS). Install `wrangler` globally or use `npx` for the Cloudflare flow below.
@@ -30,7 +30,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8788
 3) Copy `.dev.vars.example` to `.dev.vars` for the function runtime:
 ```
 OPENROUTER_API_KEY=your_openrouter_key
-OPENROUTER_MODEL=google/gemini-2.5-flash-lite-preview-09-2025
+OPENROUTER_MODEL=google/gemini-2.5-flash-lite
 ```
 4) Terminal 1: `npx wrangler pages dev . --port 8788 --local`
 5) Terminal 2: `npm run dev` (open http://localhost:5173)

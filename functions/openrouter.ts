@@ -7,7 +7,7 @@ type Env = {
 type PagesFunction = (context: { request: Request; env: Env }) => Promise<Response>;
 
 const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const DEFAULT_OPENROUTER_MODEL = "google/gemini-2.5-flash-lite-preview-09-2025";
+const DEFAULT_OPENROUTER_MODEL = "google/gemini-2.5-flash-lite";
 const MAX_REQUEST_BYTES = 32_768;
 const MAX_MESSAGE_CHARS = 12_000;
 const MAX_OUTPUT_TOKENS = 1_200;
