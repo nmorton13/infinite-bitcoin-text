@@ -25,6 +25,7 @@ const App: React.FC = () => {
   const chunksRef = useRef<TextChunk[]>([]);
   const isFetchingRef = useRef(false);
   const autoLoadEnabledRef = useRef(true);
+  const autoFillAttemptsRef = useRef(0);
   const retryAtRef = useRef(0);
   const [conceptTrees, setConceptTrees] = useState<Record<string, {
     nodes: ConceptNode[];
@@ -104,6 +105,27 @@ const App: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (loadingState !== LoadingState.IDLE || chunks.length === 0) return;
+
+    const target = observerTarget.current;
+    if (!target) return;
+
+    const targetTop = target.getBoundingClientRect().top;
+    const isNearBottom = targetTop <= window.innerHeight + 400;
+
+    if (!isNearBottom) {
+      autoFillAttemptsRef.current = 0;
+      return;
+    }
+
+    if (autoFillAttemptsRef.current >= 2) return;
+    autoFillAttemptsRef.current += 1;
+
+    const timer = window.setTimeout(() => fetchMoreContent(), 0);
+    return () => window.clearTimeout(timer);
+  }, [chunks.length, fetchMoreContent, loadingState]);
+
   // Initial load
   useEffect(() => {
     if (chunks.length === 0) {
@@ -132,7 +154,7 @@ const App: React.FC = () => {
         observer.unobserve(observerTarget.current);
       }
     };
-  }, [fetchMoreContent, loadingState]);
+  }, [fetchMoreContent]);
 
   const loadConceptTree = useCallback(async (chunkId: string, topic: string) => {
     setConceptTrees(prev => ({
