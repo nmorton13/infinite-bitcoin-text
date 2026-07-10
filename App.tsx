@@ -132,7 +132,7 @@ const App: React.FC = () => {
         observer.unobserve(observerTarget.current);
       }
     };
-  }, [fetchMoreContent]);
+  }, [fetchMoreContent, loadingState]);
 
   const loadConceptTree = useCallback(async (chunkId: string, topic: string) => {
     setConceptTrees(prev => ({
