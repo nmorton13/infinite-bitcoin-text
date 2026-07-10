@@ -30,6 +30,7 @@ VITE_API_BASE_URL=http://127.0.0.1:8788
 3) Copy `.dev.vars.example` to `.dev.vars` for the function runtime:
 ```
 OPENROUTER_API_KEY=your_openrouter_key
+OPENROUTER_MODEL=google/gemini-2.5-flash-lite-preview-09-2025
 ```
 4) Terminal 1: `npx wrangler pages dev . --port 8788 --local`
 5) Terminal 2: `npm run dev` (open http://localhost:5173)
@@ -47,6 +48,8 @@ Vite points to the locally running Pages function at `/openrouter`, keeping your
 ## Deploying to Cloudflare Pages
 - Build command: `npm run build`; Output directory: `dist`; Functions auto-detected from `functions/`
 - Env: set secret `OPENROUTER_API_KEY` in the Pages project
+- Env: set `OPENROUTER_MODEL` to the OpenRouter model ID you want the server to enforce
+- Rate limiting: protect `POST /openrouter` with a zone-level Cloudflare WAF rate limiting rule; the client honors `Retry-After` and does not automatically retry failures
 - Optional env: `CORS_ALLOW_ORIGIN=https://your-domain.example` for a specific production origin (local dev stays `*`)
 - Optional env: leave `VITE_API_BASE_URL` empty so the app calls same-origin `/openrouter` in production; set it only if you proxy through a different host
 - Deploy flow: if you want to host on Cloudflare Pages, create a project pointing at **your** fork/clone of this repo, apply the settings above, and deploy so the bundled `/openrouter` function runs with same-origin fetches.

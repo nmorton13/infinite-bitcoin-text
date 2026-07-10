@@ -3,7 +3,43 @@ import { ConceptNode } from "../types";
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const OPENROUTER_PROXY_URL = `${API_BASE}/openrouter`;
-const OPENROUTER_MODEL = "google/gemini-2.5-flash-lite-preview-09-2025";
+
+export class RateLimitError extends Error {
+  retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number) {
+    super("OpenRouter request rate limited");
+    this.name = "RateLimitError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
+type RequestKind = "text" | "concept-tree";
+
+const requestOpenRouter = async (kind: RequestKind, userPrompt: string) => {
+  const response = await fetch(OPENROUTER_PROXY_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ kind, prompt: userPrompt }),
+  });
+
+  if (response.status === 429) {
+    const retryAfter = Number.parseInt(response.headers.get("Retry-After") || "30", 10);
+    throw new RateLimitError(Number.isFinite(retryAfter) ? Math.max(retryAfter, 1) : 30);
+  }
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error("OpenRouter request failed:", errorText);
+    throw new Error(`OpenRouter error: ${response.status}`);
+  }
+
+  return response.json() as Promise<{
+    choices?: { message?: { content?: string } }[];
+  }>;
+};
 
 const getRandomTopic = (exclude: string[] = []): string => {
   const excludeSet = new Set(exclude.map(topic => topic.toLowerCase()));
@@ -35,35 +71,7 @@ export const generateBitcoinText = async (recentTopics: string[] = [], forcedTop
     11. Avoid overclaiming. Use phrases like "computationally infeasible" instead of "impossible" or "unbreakable".
   `;
 
-  const response = await fetch(OPENROUTER_PROXY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are the author of an infinite, living document about Bitcoin. You possess deep knowledge of cryptography, economics, history, and computer science. You write in a raw, terminal-like style.",
-        },
-        { role: "user", content: userPrompt.trim() },
-      ],
-      stream: false,
-      temperature: 0.35,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("OpenRouter request failed:", errorText);
-    throw new Error(`OpenRouter error: ${response.status}`);
-  }
-
-  const data: {
-    choices?: { message?: { content?: string } }[];
-  } = await response.json();
+  const data = await requestOpenRouter("text", userPrompt.trim());
 
   const text = data.choices?.[0]?.message?.content?.trim() || "";
   const cleanText = text.replace(/^#+\s/gm, "").replace(/\*\*/g, "");
@@ -85,7 +93,7 @@ const parseConceptNodes = (raw: unknown, topic: string): ConceptNode[] => {
   const nodesInput = Array.isArray(raw)
     ? raw
     : typeof raw === "object" && raw !== null && Array.isArray((raw as { nodes?: unknown }).nodes)
-      ? (raw as { nodes: unknown }).nodes
+      ? (raw as { nodes: unknown[] }).nodes
       : null;
 
   if (!nodesInput) return [fallbackNode];
@@ -134,35 +142,7 @@ export const generateConceptTree = async (topic: string): Promise<ConceptNode[]>
     - No prose outside JSON. No markdown.
   `;
 
-  const response = await fetch(OPENROUTER_PROXY_URL, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a Bitcoin researcher who thinks laterally. You respond with lean JSON concept trees only.",
-        },
-        { role: "user", content: userPrompt.trim() },
-      ],
-      stream: false,
-      temperature: 0.55,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("OpenRouter tree request failed:", errorText);
-    throw new Error(`OpenRouter error: ${response.status}`);
-  }
-
-  const data: {
-    choices?: { message?: { content?: string } }[];
-  } = await response.json();
+  const data = await requestOpenRouter("concept-tree", userPrompt.trim());
 
   const text = data.choices?.[0]?.message?.content?.trim();
 

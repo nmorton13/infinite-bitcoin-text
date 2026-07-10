@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { generateBitcoinText, generateConceptTree } from './services/openRouterService';
+import { generateBitcoinText, generateConceptTree, RateLimitError } from './services/openRouterService';
 import { TextChunk, LoadingState, ConceptNode } from './types';
 import { BitcoinLogo } from './components/BitcoinLogo';
 
@@ -20,7 +20,12 @@ const App: React.FC = () => {
   const [chunks, setChunks] = useState<TextChunk[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [loadingMessage, setLoadingMessage] = useState<string>(getRandomLoadingMessage());
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
   const observerTarget = useRef<HTMLDivElement>(null);
+  const chunksRef = useRef<TextChunk[]>([]);
+  const isFetchingRef = useRef(false);
+  const autoLoadEnabledRef = useRef(true);
+  const retryAtRef = useRef(0);
   const [conceptTrees, setConceptTrees] = useState<Record<string, {
     nodes: ConceptNode[];
     loading: boolean;
@@ -34,8 +39,32 @@ const App: React.FC = () => {
   // Generate a unique ID for React keys
   const generateId = () => `chunk-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-  const fetchMoreContent = useCallback(async () => {
-    if (loadingState === LoadingState.LOADING) return;
+  useEffect(() => {
+    chunksRef.current = chunks;
+  }, [chunks]);
+
+  useEffect(() => {
+    if (retryAfterSeconds <= 0) return;
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((retryAtRef.current - Date.now()) / 1000));
+      setRetryAfterSeconds(remaining);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [retryAfterSeconds > 0]);
+
+  const fetchMoreContent = useCallback(async (userInitiated = false) => {
+    if (isFetchingRef.current) return;
+    if (!userInitiated && !autoLoadEnabledRef.current) return;
+
+    const remainingCooldown = Math.ceil((retryAtRef.current - Date.now()) / 1000);
+    if (remainingCooldown > 0) {
+      setRetryAfterSeconds(remainingCooldown);
+      setLoadingState(LoadingState.ERROR);
+      return;
+    }
+
+    isFetchingRef.current = true;
+    if (userInitiated) autoLoadEnabledRef.current = true;
 
     setLoadingMessage(getRandomLoadingMessage());
     setLoadingState(LoadingState.LOADING);
@@ -45,7 +74,7 @@ const App: React.FC = () => {
     const minDelay = new Promise(resolve => setTimeout(resolve, 800));
     
     try {
-      const recentTopics = chunks.slice(-10).map(chunk => chunk.topic);
+      const recentTopics = chunksRef.current.slice(-10).map(chunk => chunk.topic);
       const { text, topic } = await generateBitcoinText(recentTopics);
       
       await minDelay;
@@ -56,13 +85,24 @@ const App: React.FC = () => {
         topic: topic
       };
 
-      setChunks(prev => [...prev, newChunk]);
+      setChunks(prev => {
+        const next = [...prev, newChunk];
+        chunksRef.current = next;
+        return next;
+      });
       setLoadingState(LoadingState.IDLE);
     } catch (error) {
       console.error("Failed to fetch content", error);
+      autoLoadEnabledRef.current = false;
+      if (error instanceof RateLimitError) {
+        retryAtRef.current = Date.now() + error.retryAfterSeconds * 1000;
+        setRetryAfterSeconds(error.retryAfterSeconds);
+      }
       setLoadingState(LoadingState.ERROR);
+    } finally {
+      isFetchingRef.current = false;
     }
-  }, [loadingState]);
+  }, []);
 
   // Initial load
   useEffect(() => {
@@ -387,11 +427,12 @@ const App: React.FC = () => {
               <button 
                 onClick={() => {
                   setLoadingState(LoadingState.IDLE);
-                  fetchMoreContent();
+                  fetchMoreContent(true);
                 }}
+                disabled={retryAfterSeconds > 0}
                 className="px-4 py-2 border border-gray-700 hover:border-orange-500 hover:text-orange-500 transition-colors text-sm"
               >
-                RETRY_CONNECTION
+                {retryAfterSeconds > 0 ? `RETRY_IN_${retryAfterSeconds}S` : "RETRY_CONNECTION"}
               </button>
             </div>
           )}
